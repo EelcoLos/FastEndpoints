@@ -30,7 +30,7 @@ Useful reflection requires a protobuf wire format (i.e. protobuf-net.Grpc-style)
 which is a transport change, not an add-on.
 
 ## Run
-```
-dotnet test Tests/IntegrationTests/FastEndpoints/Int.FastEndpoints.csproj \
+```powershell
+dotnet test Tests/IntegrationTests/FastEndpoints/Int.FastEndpoints.csproj `
   --filter "FullyQualifiedName~RemoteProcedureCalls.GrpcReflection"
 ```
