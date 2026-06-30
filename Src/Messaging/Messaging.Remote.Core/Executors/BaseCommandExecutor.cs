@@ -17,6 +17,6 @@ class BaseCommandExecutor<TCommand, TResult>(ChannelBase channel, MethodType met
         type: methodType,
         serviceName: endpointName ?? typeof(TCommand).FullName!,
         name: "",
-        requestMarshaller: new MessagePackMarshaller<TCommand>(),
-        responseMarshaller: new MessagePackMarshaller<TResult>());
+        requestMarshaller: RemoteMarshaller.Factory.Create<TCommand>(),
+        responseMarshaller: RemoteMarshaller.Factory.Create<TResult>());
 }

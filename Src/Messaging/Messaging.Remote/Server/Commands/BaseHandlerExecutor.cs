@@ -40,8 +40,8 @@ abstract class BaseHandlerExecutor<TCommand, THandler, TResult, TSelf> : IMethod
             type: MethodType(),
             serviceName: typeof(TCommand).FullName!,
             name: "",
-            requestMarshaller: new MessagePackMarshaller<TCommand>(),
-            responseMarshaller: new MessagePackMarshaller<TResult>());
+            requestMarshaller: RemoteMarshaller.Factory.Create<TCommand>(),
+            responseMarshaller: RemoteMarshaller.Factory.Create<TResult>());
 
         var metadata = new List<object>();
         var handlerAttributes = HandlerExecMethodAttributes(tExecutor);

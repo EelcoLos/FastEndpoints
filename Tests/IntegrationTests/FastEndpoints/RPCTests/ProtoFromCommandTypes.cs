@@ -35,11 +35,19 @@ public class ProtoFromCommandTypes(ITestOutputHelper output)
     {
         var cmd = new EchoCommand { FirstName = "johnny", LastName = "lawrence" };
 
-        var roundTripped = RoundTrip(new ProtobufMarshaller<EchoCommand>(), cmd);
+        // go through the IMarshallerFactory seam - this is exactly the type you'd assign to
+        // RemoteMarshaller.Factory to flip the wire format for both client and server.
+        IMarshallerFactory factory = new ProtobufMarshallerFactory();
+        var roundTripped = RoundTrip(factory.Create<EchoCommand>(), cmd);
 
         roundTripped.FirstName.ShouldBe("johnny");
         roundTripped.LastName.ShouldBe("lawrence");
     }
+
+    [Fact]
+    public void Default_Wire_Format_Is_Unchanged()
+        // the seam defaults to messagepack, so swapping it in is opt-in and existing servers/clients are untouched.
+        => RemoteMarshaller.Factory.Create<EchoCommand>().ShouldBeAssignableTo<Marshaller<EchoCommand>>();
 
     [Fact]
     public void Primitive_Result_Needs_A_Wrapper()
@@ -51,7 +59,7 @@ public class ProtoFromCommandTypes(ITestOutputHelper output)
         var proto = ContractlessModel.For(typeof(StringValue)).GetSchema(typeof(StringValue), ProtoSyntax.Proto3);
         proto.ShouldContain("message StringValue");
 
-        RoundTrip(new ProtobufMarshaller<StringValue>(), new() { Value = "johnny lawrence" }).Value.ShouldBe("johnny lawrence");
+        RoundTrip(new ProtobufMarshallerFactory().Create<StringValue>(), new() { Value = "johnny lawrence" }).Value.ShouldBe("johnny lawrence");
     }
 
     //drives a Marshaller<T> exactly how grpc-dotnet would: serialize via the buffer writer, read back from the payload.
@@ -83,6 +91,14 @@ public class ProtoFromCommandTypes(ITestOutputHelper output)
         public override ReadOnlySequence<byte> PayloadAsReadOnlySequence() => payload;
         public override byte[] PayloadAsNewBuffer() => payload.ToArray();
     }
+}
+
+// the wire-format swap target: assign `RemoteMarshaller.Factory = new ProtobufMarshallerFactory()` to put
+// FE's remote commands/results on a protobuf wire instead of messagepack.
+sealed class ProtobufMarshallerFactory : IMarshallerFactory
+{
+    public Marshaller<T> Create<T>() where T : class
+        => new ProtobufMarshaller<T>();
 }
 
 // protobuf counterpart of FE's MsgPackMarshaller - same shape, protobuf wire format instead of messagepack.
