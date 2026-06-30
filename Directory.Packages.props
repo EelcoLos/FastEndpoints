@@ -13,6 +13,8 @@
         <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="2.80.0"/>
         <PackageVersion Include="Grpc.Reflection" Version="2.80.0"/>
         <PackageVersion Include="Grpc.Net.Client" Version="2.80.0"/>
+        <PackageVersion Include="protobuf-net" Version="3.2.56"/> <!-- prototype: issue #620 .proto-from-command-types -->
+
         <PackageVersion Include="Grpc.Net.Client.Web" Version="2.80.0"/>
         <PackageVersion Include="MessagePack" Version="3.1.7"/>
         <PackageVersion Include="Microsoft.AspNetCore.JsonPatch.SystemTextJson" Version="10.0.9"/>

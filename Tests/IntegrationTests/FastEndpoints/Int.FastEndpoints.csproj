@@ -2,6 +2,7 @@
 
     <ItemGroup>
         <PackageReference Include="Grpc.Reflection"/> <!-- prototype: issue #620 reflection-client for the demo test -->
+        <PackageReference Include="protobuf-net"/> <!-- prototype: issue #620 .proto generation + protobuf marshaller -->
         <ProjectReference Include="..\..\..\Src\Library\FastEndpoints.csproj"/>
         <ProjectReference Include="..\..\..\Src\Messaging\Messaging.Remote.Testing\FastEndpoints.Messaging.Remote.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Src\Testing\FastEndpoints.Testing.csproj"/>
