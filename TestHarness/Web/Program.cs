@@ -22,6 +22,7 @@ using Web.Services;
 
 var bld = WebApplication.CreateBuilder(args);
 bld.AddHandlerServer();
+bld.Services.AddGrpcReflection(); //prototype: issue #620 - enable standard grpc reflection
 bld.Services
    .AddCors()
    .AddOutputCache()
@@ -146,6 +147,8 @@ app.MapHandlers(
         h.RegisterEventHub<TestEventQueue>();
         h.RegisterEventHub<MyEvent>();
     });
+
+app.MapGrpcReflectionService(); //prototype: issue #620 - expose the reflection endpoint
 
 app.UseJobQueues(
     o =>

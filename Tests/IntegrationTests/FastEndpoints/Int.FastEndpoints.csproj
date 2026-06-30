@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <PackageReference Include="Grpc.Reflection"/> <!-- prototype: issue #620 reflection-client for the demo test -->
         <ProjectReference Include="..\..\..\Src\Library\FastEndpoints.csproj"/>
         <ProjectReference Include="..\..\..\Src\Messaging\Messaging.Remote.Testing\FastEndpoints.Messaging.Remote.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Src\Testing\FastEndpoints.Testing.csproj"/>
