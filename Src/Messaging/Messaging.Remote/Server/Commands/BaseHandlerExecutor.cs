@@ -32,7 +32,7 @@ abstract class BaseHandlerExecutor<TCommand, THandler, TResult, TSelf> : IMethod
 
     static readonly string[] _httpPost = ["POST"];
 
-    public void Bind(ServiceMethodProviderContext<TSelf> ctx)
+    public void Bind(ServiceMethodProviderContext<TSelf> ctx, IRpcMarshallerFactory marshaller)
     {
         var tExecutor = typeof(TSelf);
 
@@ -40,8 +40,8 @@ abstract class BaseHandlerExecutor<TCommand, THandler, TResult, TSelf> : IMethod
             type: MethodType(),
             serviceName: typeof(TCommand).FullName!,
             name: "",
-            requestMarshaller: RemoteMarshaller.Factory.Create<TCommand>(),
-            responseMarshaller: RemoteMarshaller.Factory.Create<TResult>());
+            requestMarshaller: marshaller.Create<TCommand>(),
+            responseMarshaller: marshaller.Create<TResult>());
 
         var metadata = new List<object>();
         var handlerAttributes = HandlerExecMethodAttributes(tExecutor);

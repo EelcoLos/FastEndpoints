@@ -30,23 +30,25 @@ wire format pluggable, instead of FE owning a multi-language client generator.
 
 ## How it plugs into FE (the wire format is now pluggable)
 
-The wire format used to be hard-coded as `new MessagePackMarshaller<T>()` in two spots:
+The wire format used to be hard-coded as `new MessagePackMarshaller<T>()` at every method
+binding site (server command binder, server event hub, and all client executors).
 
-- server: `Src/Messaging/Messaging.Remote/Server/Commands/BaseHandlerExecutor.cs` (`Bind`)
-- client: `Src/Messaging/Messaging.Remote.Core/Executors/BaseCommandExecutor.cs`
+Those sites now resolve an `IRpcMarshallerFactory` (`Src/Messaging/Messaging.Remote.Core/MarshallerFactory.cs`),
+which defaults to MessagePack, so every existing test passes unchanged. It is wired as a
+startup option, per the maintainer's guidance, rather than an ad-hoc static hook:
 
-This branch replaces both with `RemoteMarshaller.Factory.Create<T>()`
-(`Src/Messaging/Messaging.Remote.Core/MarshallerFactory.cs`). The factory defaults to
-MessagePack, so every existing test still passes unchanged; assigning
-`RemoteMarshaller.Factory` swaps the wire format for both client and server. That is the
-"customization of the wire format" seam.
+- server: `AddHandlerServer(marshaller: ...)` registers the factory in DI; `ServiceMethodProvider`
+  injects it and hands it to each binder's `Bind(ctx, marshaller)` (commands and event hubs).
+- client: `RemoteConnection.MarshallerFactory` (a public property, defaulting to the DI-registered
+  factory or MessagePack) is passed to every command/event executor. Set it inside the `MapRemote`
+  action for a per-connection wire format.
 
-`ProtobufMarshaller<T>` in `ProtoFromCommandTypes.cs` is a working `IMarshallerFactory`
+`ProtobufMarshaller<T>` in `ProtoFromCommandTypes.cs` is a working `IRpcMarshallerFactory`
 target: same shape as `MsgPackMarshaller`, protobuf on the wire.
 
-> ponytail: the seam is a static hook to keep the change small. The upgrade path is a
-> per-connection (`RemoteConnection`) and per-server (`GrpcServiceOptions`) option once a
-> pluggable wire format becomes a shipped opt-in feature.
+> ponytail: server customization is a single optional `AddHandlerServer` argument plus a DI
+> singleton; client customization is a per-connection property. No new abstraction beyond the
+> one interface the maintainer named (`IRpcMarshallerFactory`).
 
 ## Remaining piece: making reflection *list* a protobuf handler
 

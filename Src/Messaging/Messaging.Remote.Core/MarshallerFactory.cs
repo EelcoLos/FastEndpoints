@@ -3,35 +3,24 @@ using Grpc.Core;
 namespace FastEndpoints;
 
 /// <summary>
-/// creates the grpc <see cref="Marshaller{T}" /> used to (de)serialize commands and results on the wire.
-/// swap <see cref="RemoteMarshaller.Factory" /> to change the wire format (e.g. protobuf for cross-ecosystem interop).
+/// creates the grpc <see cref="Marshaller{T}" /> used to (de)serialize commands, results and events on the wire.
+/// register a custom implementation to change the wire format (e.g. protobuf for cross-ecosystem interop) via the
+/// <c>marshaller</c> argument of <c>AddHandlerServer()</c> on the server, or via <c>RemoteConnection.MarshallerFactory</c> on the client.
+/// defaults to messagepack.
 /// </summary>
-public interface IMarshallerFactory
+public interface IRpcMarshallerFactory
 {
     /// <summary>
-    /// creates a marshaller for the given command/result type.
+    /// creates a marshaller for the given command/result/event type.
     /// </summary>
-    /// <typeparam name="T">the command or result type being marshalled</typeparam>
+    /// <typeparam name="T">the type being marshalled</typeparam>
     Marshaller<T> Create<T>() where T : class;
 }
 
-sealed class MessagePackMarshallerFactory : IMarshallerFactory
+sealed class MessagePackMarshallerFactory : IRpcMarshallerFactory
 {
     internal static readonly MessagePackMarshallerFactory Instance = new();
 
     public Marshaller<T> Create<T>() where T : class
         => new MessagePackMarshaller<T>();
-}
-
-/// <summary>
-/// the wire-format marshaller used by remote command handlers and clients. defaults to messagepack.
-/// </summary>
-public static class RemoteMarshaller
-{
-    // ponytail: global hook keeps the change minimal; the upgrade path is a per-connection (RemoteConnection)
-    // and per-server (GrpcServiceOptions) option once a pluggable wire format becomes a shipped opt-in feature.
-    /// <summary>
-    /// the factory that produces the grpc marshallers for all remote commands/results. defaults to messagepack.
-    /// </summary>
-    public static IMarshallerFactory Factory { get; set; } = MessagePackMarshallerFactory.Instance;
 }

@@ -35,9 +35,9 @@ public class ProtoFromCommandTypes(ITestOutputHelper output)
     {
         var cmd = new EchoCommand { FirstName = "johnny", LastName = "lawrence" };
 
-        // go through the IMarshallerFactory seam - this is exactly the type you'd assign to
-        // RemoteMarshaller.Factory to flip the wire format for both client and server.
-        IMarshallerFactory factory = new ProtobufMarshallerFactory();
+        // go through the IRpcMarshallerFactory seam - this is exactly the type you'd hand to
+        // AddHandlerServer(marshaller: ...) on the server or RemoteConnection.MarshallerFactory on the client.
+        IRpcMarshallerFactory factory = new ProtobufMarshallerFactory();
         var roundTripped = RoundTrip(factory.Create<EchoCommand>(), cmd);
 
         roundTripped.FirstName.ShouldBe("johnny");
@@ -47,7 +47,7 @@ public class ProtoFromCommandTypes(ITestOutputHelper output)
     [Fact]
     public void Default_Wire_Format_Is_Unchanged()
         // the seam defaults to messagepack, so swapping it in is opt-in and existing servers/clients are untouched.
-        => RemoteMarshaller.Factory.Create<EchoCommand>().ShouldBeAssignableTo<Marshaller<EchoCommand>>();
+        => MessagePackMarshallerFactory.Instance.Create<EchoCommand>().ShouldBeAssignableTo<Marshaller<EchoCommand>>();
 
     [Fact]
     public void Primitive_Result_Needs_A_Wrapper()
@@ -93,9 +93,9 @@ public class ProtoFromCommandTypes(ITestOutputHelper output)
     }
 }
 
-// the wire-format swap target: assign `RemoteMarshaller.Factory = new ProtobufMarshallerFactory()` to put
-// FE's remote commands/results on a protobuf wire instead of messagepack.
-sealed class ProtobufMarshallerFactory : IMarshallerFactory
+// the wire-format swap target: hand this to `AddHandlerServer(marshaller: new ProtobufMarshallerFactory())` on the
+// server, or set `RemoteConnection.MarshallerFactory` on the client, to put FE's remote traffic on protobuf.
+sealed class ProtobufMarshallerFactory : IRpcMarshallerFactory
 {
     public Marshaller<T> Create<T>() where T : class
         => new ProtobufMarshaller<T>();

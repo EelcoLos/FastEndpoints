@@ -62,6 +62,13 @@ public class RemoteConnectionCore
     /// </summary>
     public string RemoteAddress { get; }
 
+    // ReSharper disable once MemberCanBeProtected.Global
+    /// <summary>
+    /// the wire-format marshaller factory for this connection. defaults to the DI-registered <see cref="IRpcMarshallerFactory" /> or messagepack.
+    /// set this (before registering commands/events) to use a different wire format such as protobuf.
+    /// </summary>
+    public IRpcMarshallerFactory MarshallerFactory { get; set; }
+
     readonly IServiceProvider _serviceProvider;
     readonly CancellationToken _appCancellation;
     protected readonly string? UnixSocketPath;
@@ -69,6 +76,7 @@ public class RemoteConnectionCore
     internal RemoteConnectionCore(string address, IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
+        MarshallerFactory = serviceProvider.GetService<IRpcMarshallerFactory>() ?? MessagePackMarshallerFactory.Instance;
         _appCancellation = serviceProvider.GetService<IHostApplicationLifetime>()?.ApplicationStopping ?? CancellationToken.None; //could be null on browser
 
         if (address.StartsWith("http", StringComparison.OrdinalIgnoreCase))
@@ -92,7 +100,7 @@ public class RemoteConnectionCore
         var tCommand = typeof(TCommand);
         RemoteMap[tCommand] = this;
         Channel ??= GrpcChannel.ForAddress(RemoteAddress, ChannelOptions);
-        ExecutorMap[tCommand] = new VoidCommandExecutor<TCommand>(Channel);
+        ExecutorMap[tCommand] = new VoidCommandExecutor<TCommand>(Channel, MarshallerFactory);
     }
 
     internal Task ExecuteVoid(ICommand cmd, Type tCommand, CallOptions opts)
@@ -110,7 +118,7 @@ public class RemoteConnectionCore
         var tCommand = typeof(TCommand);
         RemoteMap[tCommand] = this;
         Channel ??= GrpcChannel.ForAddress(RemoteAddress, ChannelOptions);
-        ExecutorMap[tCommand] = new UnaryCommandExecutor<TCommand, TResult>(Channel);
+        ExecutorMap[tCommand] = new UnaryCommandExecutor<TCommand, TResult>(Channel, MarshallerFactory);
     }
 
     internal Task<TResult> ExecuteUnary<TResult>(ICommand<TResult> cmd, Type tCommand, CallOptions opts) where TResult : class
@@ -128,7 +136,7 @@ public class RemoteConnectionCore
         var tCommand = typeof(TCommand);
         RemoteMap[tCommand] = this;
         Channel ??= GrpcChannel.ForAddress(RemoteAddress, ChannelOptions);
-        ExecutorMap[tCommand] = new ServerStreamCommandExecutor<TCommand, TResult>(Channel);
+        ExecutorMap[tCommand] = new ServerStreamCommandExecutor<TCommand, TResult>(Channel, MarshallerFactory);
     }
 
     internal IAsyncStreamReader<TResult> ExecuteServerStream<TResult>(IServerStreamCommand<TResult> cmd, Type tCommand, CallOptions opts)
@@ -147,7 +155,7 @@ public class RemoteConnectionCore
         var tCommand = typeof(IAsyncEnumerable<T>);
         RemoteMap[tCommand] = this;
         Channel ??= GrpcChannel.ForAddress(RemoteAddress, ChannelOptions);
-        ExecutorMap[tCommand] = new ClientStreamCommandExecutor<T, TResult>(Channel);
+        ExecutorMap[tCommand] = new ClientStreamCommandExecutor<T, TResult>(Channel, MarshallerFactory);
     }
 
     internal Task<TResult> ExecuteClientStream<T, TResult>(IAsyncEnumerable<T> cmd, Type tCommand, CallOptions opts) where T : class where TResult : class
@@ -235,8 +243,8 @@ public class RemoteConnectionCore
         var tHandler = _serviceProvider.GetService<IEventHandler<TEvent>>()?.GetType() ?? typeof(TEventHandler);
         var tEventSubscriber = typeof(EventSubscriber<,,,>).MakeGenericType(typeof(TEvent), tHandler, StorageRecordType, StorageProviderType);
         var eventSubscriber = (ICommandExecutor)(subscriberID is null
-                                                     ? ActivatorUtilities.CreateInstance(_serviceProvider, tEventSubscriber, Channel!, clientIdentifier)
-                                                     : ActivatorUtilities.CreateInstance(_serviceProvider, tEventSubscriber, Channel!, clientIdentifier, subscriberID));
+                                                     ? ActivatorUtilities.CreateInstance(_serviceProvider, tEventSubscriber, Channel!, clientIdentifier, MarshallerFactory)
+                                                     : ActivatorUtilities.CreateInstance(_serviceProvider, tEventSubscriber, Channel!, clientIdentifier, subscriberID, MarshallerFactory));
 
         ExecutorMap[tEventHandler] = eventSubscriber;
 

@@ -7,7 +7,7 @@ namespace FastEndpoints;
 /// </summary>
 public interface ICommandExecutor;
 
-class BaseCommandExecutor<TCommand, TResult>(ChannelBase channel, MethodType methodType, string? endpointName = null)
+class BaseCommandExecutor<TCommand, TResult>(ChannelBase channel, MethodType methodType, IRpcMarshallerFactory marshaller, string? endpointName = null)
     where TCommand : class
     where TResult : class
 {
@@ -17,6 +17,6 @@ class BaseCommandExecutor<TCommand, TResult>(ChannelBase channel, MethodType met
         type: methodType,
         serviceName: endpointName ?? typeof(TCommand).FullName!,
         name: "",
-        requestMarshaller: RemoteMarshaller.Factory.Create<TCommand>(),
-        responseMarshaller: RemoteMarshaller.Factory.Create<TResult>());
+        requestMarshaller: marshaller.Create<TCommand>(),
+        responseMarshaller: marshaller.Create<TResult>());
 }
